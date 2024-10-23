@@ -2,90 +2,83 @@
 
 ## 1. design
 
-### 1.1 图
-
-<img src=".\photos\流程图.drawio-1668444962275-1.svg" alt="流程图.drawio" style="zoom:50%;" /> <img src="D:\OneDrive\OneDrive - University College Dublin\大学\大三上\DS\photos\P2P.drawio.svg" alt="P2P.drawio" style="zoom:50%;" />
 
 
 
 
+<img src=".\photos\流程图.drawio.svg" alt="流程图.drawio" style="zoom: 50%;" />
 
-![流程图.drawio](E:\UCD-OneDrive\OneDrive - University College Dublin\大学\大三上\DS\photos\流程图.drawio.svg)
+My p2p chat application is divided into two main parts, one for the server and the other for the client. Unlike p2s, the server in p2p is only responsible for maintaining the connection to the client and broadcasting messages. My application uses `ServerScoket` and `socket` to establish a TCP connection between the client and the server. The server holds information about all currently connected clients, and when a new client connects or a client disconnects, the server updates the list of online users and broadcasts it to all online users. If a client wants to send a message to another client, it needs to get the latest list of online users broadcast by the server, find the corresponding client port number in the list and establish a connection and send the message.
 
-我的p2p 聊天程序主要分为两个部分，一个部分是服务器另一个部分为客户端。不同于p2s，p2p中的服务器只负责维持和客户端的连接以及进行广播消息。我的程序中使用了`ServerScoket ` 和 `socket` 使客户端和服务器建立了TCP连接。服务器中存有所有当前连接的客户端的信息，当有新的客户端连接或者有客户端断开连接时，服务器会更新在线用户列表并广播给所有在线用户。客户端如果想与其他客户端发送信息，需要获取服务器的最新广播内的在线用户列表，从列表中找到对应的客户端接口建立连接并发送信息。
+## 2 Explain the design ideas
 
-### 1.2 解释设计思路
+### 2.1 GUI
 
-#### 1.2.1 GUI
+I have used JAVA Swing for the UI design.
 
-使用了JAVA Swing来进行UI界面设计。
+**Client Interface**
 
-**客户端界面**
+<img src=".\photos\image-20221114162337430.png" alt="image-20221114162337430" style="zoom: 33%;" />
 
-<img src="E:\UCD-OneDrive\OneDrive - University College Dublin\大学\大三上\DS\photos\image-20221114162337430.png" alt="image-20221114162337430" style="zoom: 50%;" />
+The user can select the IP address of the server and the server port to connect to the different servers. When the user is connected to the server, the Kick this ID function is only available when the Administrator radio button is pressed, currently non-administrator users are not allowed to use the KICK_ID function. The ID Stats button is used to check the permissions of the selected ID (i.e. the control commands available) and all IDs available for that ID are displayed in the Received Messages section below.
 
-用户可以选择服务器的IP地址，服务器端口来连接不同的服务器。同时要有独一无二的用户名字以及唯一的端口号，当用户连接到服务器后，只有按下Adminstrator radio button才可以使用Kick this ID的功能，目前非管理员的用户不可以使用KICK_ID的功能。Available Chat Name 可以实时同步当前服务器连接客户端的姓名与端口号，当其他客户端连接服务器或者断开与服务器连接时，这个区域将会刷新。ID Stats按钮是用来查询选择的ID的权限（即能使用的控制命令），所有该ID能使用的ID会展现在下方Recieved Messages里。
+The Broadcast button is for broadcasting a message to all clients connected to the server, while the Send Message button asks for the object you want to send the message to, which must be in the Available Chat Name. The message will be sent to the specified user. The Status button below shows the current status, showing the current client status and the type of error, the Received Message shows all broadcast messages and messages sent by other clients.
 
-Broadcast按钮是为向所有连接到服务器的客户端广播message，Send Message按钮则要求输入想要发送信息的对象，该对象必须是在Available Chat Name中的。会把message发送给该指定用户。下面的Status展示了当前的状态，会展示当前客户端状态以及错误类型。Recieved Message会展示所有的广播信息以及其他客户端发送过来的信息。
+**Server-side interface**
 
-**服务器端界面**
+<img src=".\photos\image-20221114135109365.png" alt="image-20221114135109365" style="zoom: 33%;" />
 
-<img src="E:\UCD-OneDrive\OneDrive - University College Dublin\大学\大三上\DS\photos\image-20221114135109365.png" alt="image-20221114135109365" style="zoom:50%;" />
+The server side can select the port of the server. After starting the server, Current connected users will be updated in real time according to the connection and port of the user side, showing the information of the clients currently connected to the server. The lower area is used to display the messages received by the server.
 
-服务器端可以选择服务器的端口，启动服务器后，Current connected users会根据用户端的连接与端口进行实时更新，显示目前连接到服务器的客户端的信息。下方的区域是用来显示服务器收到的消息。
+### 2.2 some data class
 
-#### 1.2.2 数据类
+- `Message` class for client to server message exchange
+- `SendMessage` class for client-to-client message exchange
+- `ChatUserInfo` class for storing client specific information
+- `UserList` class for storing `ChatUserInfo` objects 
 
-- `Message` class 用于客户端与服务器的信息交流
-- `SendMessage` class 用与客户端与客户端的信息交流
-- `ChatUserInfo` class 用于存储客户端的具体信息
-- `UserList` class 用于存储 `ChatUserInfo` 对象 
+### 2.3 Server class
 
-#### 1.2.3 Server class
+<img src=".\photos\流程图.drawio-1668444962275-1.svg" alt="流程图.drawio" style="zoom:50%;" />
 
-服务器端分为一个主线程和多个子线程，服务器的主线程一直处于等待状态，负责接受新的客户端的连接。当有新的客户端通过服务器接口连接到服务器上，服务器会创建一个新的`ChatUserInfo` 对象储存客户端的详细信息，包括用户姓名，IP地址，端口号，是否为管理员等信息。并且将这个对象储存到主线程内一个`UserList`对象内。接着服务器会打开一个子线程来发送和监听这个客户端的信息，并将为该用户分配的端口号也存入 `ChatUserInfo` 对象内，方便后续对不同线程的控制。主线程内有一个`Vecotr<Scoket> sockets` 来储存服务器的所有套接字，方便对各个子线程进行管理。主线程负责管理各个子线程，进行广播，当有新的客户端连接到服务器时，服务器会对所有已连接的客户端进行广播，并发送当前的客户端列表。方便客户端进行客户端与客户端之间信息发送。
+The server side is divided into a main thread and several sub-threads. The main thread of the server is always waiting and is responsible for accepting new connections from clients. When a new client connects to the server via the server interface, the server creates a new `ChatUserInfo` object to store the client's details, including the user's name, IP address, port number, whether they are an administrator and so on. This object is then stored in a `UserList` object in the main thread. The server then opens a sub-thread to send and listen to this client's information, and stores the port number assigned to the user in a `ChatUserInfo` object to facilitate subsequent control of the different threads. The main thread has a `Vecotr<Scoket> sockets` to store all the sockets of the server and to facilitate the management of the sub-threads. The main thread is responsible for managing the individual sub-threads, making broadcasts, and when a new client connects to the server, the server broadcasts to all connected clients and sends a list of current clients. This facilitates the sending of client-to-client information from client to client.
 
-服务器子线程负责接受来自客户端的信息和发送信息给客户端，当连接存在时持续对相应客户端进行监听，处理客户端发来的信息，解析后进行对应的操作，当收到客户端发送的带有kick请求的信息，会搜索发送过来的用户id并进行kick操作，断开与该id对应线程的套接字。当客户端断开与服务器连接时，也会对所有已连接的客户端进行广播告知该客户端断开连接，并且更新客户端列表，并将更新后的客户端列表广播给所有在线用户。
+The server sub-thread is responsible for receiving information from the client and sending messages to the client, continuously listening to the corresponding client when a connection exists, processing the information sent by the client, parsing it and carrying out the corresponding operations. When a message with a kick request is received from the client, it searches for the user id sent and carries out the kick operation, disconnecting the socket of the thread corresponding to the id. When a client disconnects from the server, it also broadcasts to all connected clients to inform them of the disconnection, and updates the client list and broadcasts the updated client list to all online users.
 
-#### 1.2.4 client
+### 2.4 Client Class
 
-客户端也分为一个主线程和多个子线程，主线程一直处于等待状态，用于接受服务器端的消息，如获取所有当前在线用户列表以及得到其他用户上线通知以及广播信息。同时主线程启动时也会启动另外一个监听线程，用于监听控制台的输入，并且根据输入内容执行相应的命令。
+<img src=".\photos\P2P.drawio.svg" alt="P2P.drawio" style="zoom:50%;" />
 
-客户端子线程是用来监听其他客户端发送的信息，为了实现p2p，客户端可以与其他客户端直接进行交流，当客户端连接服务器时，会创建一个`ServerScoket` 用于监听其他客户端发送的信息。此时客户端可以看作一个服务器端。子线程会进入等待状态，当其他客户端发送过来信息时，接收完信息会断开与其他客户端的连接。客户端当想要和其他客户端发送信息时，会先向服务器发送请求，获得当前的在线用户列表，通过搜索用户名得到想要连接的客户端的端口号，发送信息至该端口。
+The client is also divided into a main thread and several sub-threads. The main thread is always waiting and is used to receive messages from the server, such as getting a list of all users currently online and being notified of other users coming online and broadcasting messages. When the main thread is started, it also starts another listening thread which listens for input from the console and executes the appropriate commands based on that input.
 
-#### 1.2.5 ConsoleListener
+The client sub-thread is used to listen to messages sent by other clients. In order to implement p2p, the client can communicate directly with other clients, and when the client connects to the server, a `ServerScoket` is created to listen to messages sent by other clients. At this point the client can be seen as a server side. The sub-thread will enter a waiting state, and when other clients send messages, it will disconnect from the other clients after receiving them. When a client wants to send a message to another client, it will first send a request to the server to get a list of the current online users, search for the username to get the port number of the client it wants to connect to, and send the message to that port.
 
-使用`ConsoleListener` 类来进行监听控制台的操作。`ConsoleListener` 类内有一个 `HashMap<String,Action> answer` 来储存特定的命令以及这个命令启动的动作，键值为控制台输入的命令，值为特定的 `Action`。`ConsoleListener` 类会创建一个新的线程用于持续监控控制台的输入，用 `Scanner` 来读取控制台输入，并在 `answer` 内搜索是否命令列表内包含控制台输入的内容，如果输入内容不包含在 `answer` 会调用默认的 `Action` 即通知错误的命令格式，如果输入内容包含在 `answer` 内，会调用命令所对应的 `Action` 操作。所有 `	Action` 的操作在创建客户主线程的时候会自动创建，并通过 `addAction` 函数存储到`ConsoleListener` 的`HashMap<String,Action>` 内。当在控制台输入符合规定的命令时，会调用相应`Action` 的 `act（line）` 函数，执行所对应的操作。这些`Action.act` 的操作会处理控制台输入的内容，提取其中的`{content}` 以及 `ID` 来进行特定的操作。当客户端关闭时，会关闭这个客户端的控制台监听线程。
+### 2.5 ConsoleListener Class
 
-所有的指令为
+Use the `ConsoleListener` class to listen for console actions. The `ConsoleListener` class has a `HashMap<String,Action> answer` to store a specific command and the action that this command initiates, with the key being the command entered on the console and the value being the specific `Action`. The `ConsoleListener` class creates a new thread to continuously monitor the console input, uses `Scanner` to read the console input and searches within `answer` to see if the command list contains the console input, if the input is not contained in `answer` the default `Action` is called which is the command that notifies the error format, if the input is contained in `answer`, the `Action` action corresponding to the command will be called. All `Action` actions are automatically created when the client's main thread is created and stored in the `HashMap<String,Action>` of the `ConsoleListener` using the `addAction` function. When the specified command is entered in the console, the `act(line)` function of the corresponding `Action` is called to perform the corresponding action. These `Action.act` actions process the console input, extracting the `{content}` and `ID` from it to perform a specific action. When the client is closed, this client's console listener thread is closed.
 
-- `BROADCAST_{content}` 广播 `content` 到所有用户端
-  - 通过调用client class 中的`broadcastData()`函数实现，提取`content`作为发送给服务器消息的内容，通过服务器对所有在线客户端进行广播 
-
-- `MESSAGE_ID_{content}` 发送 `content` 到 `ID` 所对应的客户端
-  - 通过调用client class 中的`sendData()`实现，提取`ID`和`content`，根据`ID`搜索到对应的端口号，向其发送信息。
-
-- `STOP` 断开当前客户端与服务器的链接
-  - 通过调用GUI界面disconneted的点击函数断开客户端与服务器的连接。
-
-- `LIST` 展示所有目前与服务器连接的客户端的用户ID
-  - 展示出最近一次服务器广播消息中的当前用户列表
-
-- `KICK_ID ` 断开 `ID` 所对应的客户端与服务器的连接
-  - 这个命令只有当前客户为管理员时才可以使用，会向服务器发送一个带有kick标识和想要踢出用户ID的信息，服务器会读取ID并断开该ID所对应端口的套接字。断开该用户与服务器的连接.
-
-- `STATS_ID` 展示该 `ID` 所对应客户端的所有可用指令
-  - 提取出ID后通过搜索服务器发送过来的用户列表信息，找到对应的`ChatUserInfo`对象，通过判断该用户是否是管理员，展示出不同的可用指令。
-
+All commands are
+- `BROADCAST_{content}` Broadcast `content` to all clients
+  - This is achieved by calling the `broadcastData()` function in the client class, which extracts `content` as the content of the message sent to the server, and broadcasts it to all online clients via the server 
+- `MESSAGE_ID_{content}` sends `content` to the client whose `ID` corresponds to it
+  - This is achieved by calling `sendData()` in the client class, extracting the `ID` and `content`, searching for the corresponding port number according to the `ID` and sending the message to it.
+- `STOP` breaks the link between the current client and the server
+  - Disconnects the client from the server by calling the click function of the GUI interface disconnected.
+- ` LIST` Display the user IDs of all clients currently connected to the server
+  - Show the list of current users from the last server broadcast message
+- `KICK_ID ` disconnects the client corresponding to `ID` from the server
+  - This command, available only if the current client is an administrator, sends a message to the server with a kick identifier and the ID of the user you want to kick out. The server reads the ID and disconnects the socket on the port corresponding to that ID. The server will read the ID and disconnect the user from the server.
+- `STATS_ID` shows all available commands for the client to which the `ID` corresponds
+  - After extracting the ID and searching the list of users sent by the server, find the corresponding `ChatUserInfo` object and display the different available commands by determining whether the user is an administrator or not.
 
 ## 3. pros and cons
 
-优点：
+Advantages.
 
-- 容错性高， 任何一个客户端的崩溃都不会影响整个系统
-- [去中心化](https://so.csdn.net/so/search?q=去中心化&spm=1001.2101.3001.7020)在P2P网络中，不存在客户端与服务器这样的严格区分，同时每个节点又充当着客户端和服务器。各个节点之间是平等的，只要接入网络，任意节点都能够将消息通知给网络中的每个节点。
+- High fault tolerance, no single client crash will affect the whole system
+- Decentralised, in a P2P network there is no strict distinction between client and server, while each node acts as both client and server. The nodes are equal and any node can notify every node in the network of a message as long as it is connected to the network.
 
-缺点：
+Disadvantages.
 
-- 客户端与服务器端发送的message对象过于复杂，包含内容多
-- 目前这个系统只能在本地局域网内使用
+- The message object sent from the client to the server is too complex and contains too much content
+- Currently this system can only be used within the local LAN
